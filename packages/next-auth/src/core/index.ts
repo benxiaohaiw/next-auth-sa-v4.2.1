@@ -79,16 +79,17 @@ async function toInternalRequest(
   return req
 }
 
+// 请求的核心处理函数
 export async function NextAuthHandler<
   Body extends string | Record<string, any> | any[]
 >(params: NextAuthHandlerParams): Promise<OutgoingResponse<Body>> {
   const { options: userOptions, req: incomingRequest } = params
 
-  const req = await toInternalRequest(incomingRequest)
+  const req = await toInternalRequest(incomingRequest) // 对请求进行转换
 
   setLogger(userOptions.logger, userOptions.debug)
 
-  const assertionResult = assertConfig({ options: userOptions, req })
+  const assertionResult = assertConfig({ options: userOptions, req }) // 断言用户的选项配置
 
   if (Array.isArray(assertionResult)) {
     assertionResult.forEach(logger.warn)
@@ -130,6 +131,7 @@ export async function NextAuthHandler<
 
   const { action, providerId, error, method = "GET" } = req
 
+  // 初始化默认的选项和cookies
   const { options, cookies } = await init({
     userOptions,
     action,
@@ -141,22 +143,28 @@ export async function NextAuthHandler<
     isPost: method === "POST",
   })
 
-  const sessionStore = new SessionStore(
+  // 创建一个SessionStore实例对象
+  const sessionStore = new SessionStore( // 就是缓存req请求中带过来的cookie的
     options.cookies.sessionToken,
     req,
     options.logger
   )
 
+  // 判断请求方法
   if (method === "GET") {
+    // 除非用户定义了他们的[自己的页面](https://next-auth.js.org/configuration/pages)
+    // 否则这里使用 Preact SSR 渲染一组默认的。
+    // signin、signout、verifyRequest、error类型的
     const render = renderPage({ ...options, query: req.query, cookies })
     const { pages } = options
     switch (action) {
       case "providers":
         return (await routes.providers(options.providers)) as any
-      case "session": {
-        const session = await routes.session({ options, sessionStore })
+      case "session": { // 以这个为举例，比如在server端获取session的，那么发送的请求就会走到这里
+        // 具体逻辑看routes下的session.ts文件中细节
+        const session = await routes.session({ options, sessionStore }) // 返回{body, cookies, headers}
         if (session.cookies) cookies.push(...session.cookies)
-        return { ...session, cookies } as any
+        return { ...session, cookies } as any // 返回交给外面去处理
       }
       case "csrf":
         return {
@@ -174,7 +182,7 @@ export async function NextAuthHandler<
           return { redirect: signinUrl, cookies }
         }
 
-        return render.signin()
+        return render.signin() // 采用默认的登录页面渲染
       case "signout":
         if (pages.signOut) return { redirect: pages.signOut, cookies }
 

@@ -19,11 +19,13 @@ async function NextAuthNextHandler(
   res: NextApiResponse,
   options: NextAuthOptions
 ) {
+  // 把收集的nextAuth取出来
   const { nextauth, ...query } = req.query
 
   options.secret =
     options.secret ?? options.jwt?.secret ?? process.env.NEXTAUTH_SECRET
 
+  // 核心处理函数
   const handler = await NextAuthHandler({
     req: {
       host: detectHost(req.headers["x-forwarded-host"]),
@@ -41,10 +43,13 @@ async function NextAuthNextHandler(
 
   res.status(handler.status ?? 200)
 
+  // 设置cookie
   handler.cookies?.forEach((cookie) => setCookie(res, cookie))
 
+  // 设置响应的headers
   handler.headers?.forEach((h) => res.setHeader(h.key, h.value))
 
+  // 是否要重定向
   if (handler.redirect) {
     // If the request expects a return URL, send it as JSON
     // instead of doing an actual redirect.
@@ -57,9 +62,11 @@ async function NextAuthNextHandler(
     return res.json({ url: handler.redirect })
   }
 
+  // 直接把body作为响应的结果进行发送
   return res.send(handler.body)
 }
 
+// 在pages/api/auth/[...nextAuth].ts
 function NextAuth(options: NextAuthOptions): any
 function NextAuth(
   req: NextApiRequest,
@@ -73,9 +80,10 @@ function NextAuth(
     | [NextAuthOptions]
     | [NextApiRequest, NextApiResponse, NextAuthOptions]
 ) {
-  if (args.length === 1) {
+  if (args.length === 1) { // 传递一个options，也就是配置对象
+    // 返回一个处理请求的函数
     return async (req: NextAuthRequest, res: NextAuthResponse) =>
-      await NextAuthNextHandler(req, res, args[0])
+      await NextAuthNextHandler(req, res, args[0]) // 由NextAuthNextHandler函数来进行处理
   }
 
   return NextAuthNextHandler(args[0], args[1], args[2])

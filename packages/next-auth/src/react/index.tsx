@@ -84,9 +84,9 @@ export const SessionContext = React.createContext<SessionContextValue | undefine
  *
  * [Documentation](https://next-auth.js.org/getting-started/client#usesession)
  */
-export function useSession<R extends boolean>(options?: UseSessionOptions<R>) {
+export function useSession<R extends boolean>(options?: UseSessionOptions<R>) { // 这个hook以便于在其它组件能够获取session数据
   // @ts-expect-error Satisfy TS if branch on line below
-  const value: SessionContextValue<R> = React.useContext(SessionContext)
+  const value: SessionContextValue<R> = React.useContext(SessionContext) // 使用SessionContext以便于获取在提供者处传递的value值
   if (!value && process.env.NODE_ENV !== "production") {
     throw new Error(
       "[next-auth]: `useSession` must be wrapped in a <SessionProvider />"
@@ -112,7 +112,7 @@ export function useSession<R extends boolean>(options?: UseSessionOptions<R>) {
     return { data: value.data, status: "loading" } as const
   }
 
-  return value
+  return value // 返回value值
 }
 
 export type GetSessionParams = CtxOrReq & {
@@ -121,7 +121,7 @@ export type GetSessionParams = CtxOrReq & {
   broadcast?: boolean
 }
 
-export async function getSession(params?: GetSessionParams) {
+export async function getSession(params?: GetSessionParams) { // 通过发送请求来获取session
   const session = await fetchData<Session>(
     "session",
     __NEXTAUTH,
@@ -131,7 +131,7 @@ export async function getSession(params?: GetSessionParams) {
   if (params?.broadcast ?? true) {
     broadcast.post({ event: "session", data: { trigger: "getSession" } })
   }
-  return session
+  return session // 返回session
 }
 
 /**
@@ -300,7 +300,11 @@ export async function signOut<R extends boolean = true>(
  *
  * [Documentation](https://next-auth.js.org/getting-started/client#sessionprovider)
  */
-export function SessionProvider(props: SessionProviderProps) {
+export function SessionProvider(props: SessionProviderProps) { // 使用该组件在_app.tsx中进行包裹，可以使用getServerSideProps钩子返回session，这样_app.tsx
+  // 中的App组件的props就能够收到session啦，你可以把session作为该组件的props传递过来
+  // 这种方式的前提是在server端控制session，通过页面把session传递过来，然后客户端重用它
+
+  // 使用该组件的目的是在其它子组件内可以使用useSession这个hook，它能够取得session数据，从而进一步做出对应的判断
   const { children, basePath } = props
 
   if (basePath) __NEXTAUTH.basePath = basePath
@@ -309,18 +313,18 @@ export function SessionProvider(props: SessionProviderProps) {
    * If session was `null`, there was an attempt to fetch it,
    * but it failed, but we still treat it as a valid initial value.
    */
-  const hasInitialSession = props.session !== undefined
+  const hasInitialSession = props.session !== undefined // 是否有初始session
 
   /** If session was passed, initialize as already synced */
   __NEXTAUTH._lastSync = hasInitialSession ? now() : 0
 
   const [session, setSession] = React.useState(() => {
     if (hasInitialSession) __NEXTAUTH._session = props.session
-    return props.session
+    return props.session // 把值返回
   })
 
   /** If session was passed, initialize as not loading */
-  const [loading, setLoading] = React.useState(!hasInitialSession)
+  const [loading, setLoading] = React.useState(!hasInitialSession) // 没有初始session那么就是loading状态
 
   React.useEffect(() => {
     __NEXTAUTH._getSession = async ({ event } = {}) => {
@@ -328,12 +332,12 @@ export function SessionProvider(props: SessionProviderProps) {
         const storageEvent = event === "storage"
         // We should always update if we don't have a client session yet
         // or if there are events from other tabs/windows
-        if (storageEvent || __NEXTAUTH._session === undefined) {
+        if (storageEvent || __NEXTAUTH._session === undefined) { // 第一次没有session
           __NEXTAUTH._lastSync = now()
-          __NEXTAUTH._session = await getSession({
+          __NEXTAUTH._session = await getSession({ // 发送请求进行获取session
             broadcast: !storageEvent,
           })
-          setSession(__NEXTAUTH._session)
+          setSession(__NEXTAUTH._session) // 设置session
           return
         }
 
@@ -360,11 +364,11 @@ export function SessionProvider(props: SessionProviderProps) {
       } catch (error) {
         logger.error("CLIENT_SESSION_ERROR", error as Error)
       } finally {
-        setLoading(false)
+        setLoading(false) // 设置不是加载中
       }
     }
 
-    __NEXTAUTH._getSession()
+    __NEXTAUTH._getSession() // 自行执行了一次
 
     return () => {
       __NEXTAUTH._lastSync = 0
@@ -417,6 +421,7 @@ export function SessionProvider(props: SessionProviderProps) {
     }
   }, [props.refetchInterval])
 
+  // 准备这个值对象，包含session和status
   const value: any = React.useMemo(
     () => ({
       data: session,
@@ -429,6 +434,7 @@ export function SessionProvider(props: SessionProviderProps) {
     [session, loading]
   )
 
+  // 将value交给提供者
   return (
     <SessionContext.Provider value={value}>{children}</SessionContext.Provider>
   )

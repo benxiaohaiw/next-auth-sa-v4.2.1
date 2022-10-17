@@ -29,19 +29,25 @@ export default async function session(
     session: { strategy: sessionStrategy, maxAge: sessionMaxAge },
   } = options
 
+  // 详细请看init.ts中的具体逻辑
+  // session策略 - sessionStrategy
+  // 如果未指定适配器，则强制使用jwt（无状态）
+  // 有适配器的话那么就使用database - 数据库
+
   const response: OutgoingResponse<Session | {}> = {
     body: {},
     headers: [{ key: "Content-Type", value: "application/json" }],
     cookies: [],
   }
 
-  const sessionToken = sessionStore.value
+  const sessionToken = sessionStore.value // 就是req带过来的cookie值字符串
 
-  if (!sessionToken) return response
+  if (!sessionToken) return response // 没有直接返回response就可啦
 
+  // 未指定adapt的话默认的session的策略是jwt的方式
   if (sessionStrategy === "jwt") {
     try {
-      const decodedToken = await jwt.decode({
+      const decodedToken = await jwt.decode({ // init.ts中使用的decode方法 - 解码
         ...jwt,
         token: sessionToken,
       })
@@ -60,15 +66,15 @@ export default async function session(
       }
 
       // @ts-expect-error
-      const token = await callbacks.jwt({ token: decodedToken })
+      const token = await callbacks.jwt({ token: decodedToken }) /// 执行用户选项中的callbacks对象中的jwt方法
       // @ts-expect-error
-      const newSession = await callbacks.session({ session, token })
+      const newSession = await callbacks.session({ session, token }) // 执行用户选项中的callbacks对象中的session方法
 
       // Return session payload as response
-      response.body = newSession
+      response.body = newSession // 直接作为body响应回去
 
       // Refresh JWT expiry by re-signing it, with an updated expiry date
-      const newToken = await jwt.encode({
+      const newToken = await jwt.encode({ // jwt编码
         ...jwt,
         token,
         maxAge: options.session.maxAge,
@@ -77,9 +83,10 @@ export default async function session(
       // Set cookie, to also update expiry date on cookie
       const sessionCookies = sessionStore.chunk(newToken, {
         expires: newExpires,
-      })
+      }) // 转为cookie
 
-      response.cookies?.push(...sessionCookies)
+      // 把cookie存放如响应的cookies中
+      response.cookies?.push(...sessionCookies) // 这样在响应中携带cookie，那么浏览器就能够存入cookie啦
 
       await events.session?.({ session: newSession, token })
     } catch (error) {
@@ -89,11 +96,18 @@ export default async function session(
       response.cookies?.push(...sessionStore.clean())
     }
   } else {
+    // 有适配器 - 在next-auth仓库下与next-auth同发行的依赖包中还有大量的类似于adapter-mongodb、adapter-sequelize等依赖包
+    // 那么这个便可以在用户选项中指定adapter了，肯定是引入相应的适配器，这些适配器其实就是数据库
+    // session策略为database - 数据库的方式
     try {
       const { getSessionAndUser, deleteSession, updateSession } =
-        adapter as Adapter
-      let userAndSession = await getSessionAndUser(sessionToken)
+        adapter as Adapter // 从适配器中获取对session操作的一系列的方法函数
+      // 其实说白了就是拿到对数据库的获取、删除、更新操作的一系列方法
+      
+      // 从数据库中依据req携带来的cookie获取session
+      let userAndSession = await getSessionAndUser(sessionToken) // 根据cookie字符串获取session
 
+      // 判断数据库中的session值是否过期
       // If session has expired, clean up the database
       if (
         userAndSession &&
@@ -103,6 +117,7 @@ export default async function session(
         userAndSession = null
       }
 
+      // session值没有过期且有session
       if (userAndSession) {
         const { user, session } = userAndSession
 
@@ -119,7 +134,7 @@ export default async function session(
         // Trigger update of session expiry date and write to database, only
         // if the session was last updated more than {sessionUpdateAge} ago
         if (sessionIsDueToBeUpdatedDate <= Date.now()) {
-          await updateSession({ sessionToken, expires: newExpires })
+          await updateSession({ sessionToken, expires: newExpires }) // 更新session的过期时间
         }
 
         // Pass Session through to the session callback
@@ -153,15 +168,16 @@ export default async function session(
 
         // @ts-expect-error
         await events.session?.({ session: sessionPayload })
-      } else if (sessionToken) {
+      } else if (sessionToken) { // 没有session啦，但是有客户端带过来的cookie值
         // If `sessionToken` was found set but it's not valid for a session then
         // remove the sessionToken cookie from browser.
-        response.cookies?.push(...sessionStore.clean())
+        response.cookies?.push(...sessionStore.clean()) // 让客户端把cookie删除掉，因为这是一个无效的，在数据库中查不到，所以让客户端进行删除
       }
     } catch (error) {
       logger.error("SESSION_ERROR", error as Error)
     }
   }
 
+  // 返回响应对象
   return response
 }

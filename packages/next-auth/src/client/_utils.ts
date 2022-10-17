@@ -35,14 +35,15 @@ export async function fetchData<T = any>(
   logger: LoggerInstance,
   { ctx, req = ctx?.req }: CtxOrReq = {}
 ): Promise<T | null> {
-  const url = `${apiBaseUrl(__NEXTAUTH)}/${path}`
+  const url = `${apiBaseUrl(__NEXTAUTH)}/${path}` // 拼接路径
   try {
     const options = req?.headers.cookie
       ? { headers: { cookie: req.headers.cookie } }
       : {}
-    const res = await fetch(url, options)
-    const data = await res.json()
+    const res = await fetch(url, options) // 使用fetch函数进行请求
+    const data = await res.json() // 响应的json数据转为对象
     if (!res.ok) throw data
+    // 返回数据
     return Object.keys(data).length > 0 ? data : null // Return null if data empty
   } catch (error) {
     logger.error("CLIENT_FETCH_ERROR", { error: error as Error, url })

@@ -121,6 +121,8 @@ export interface Cookie extends CookieOption {
 
 type Chunks = Record<string, string>
 
+// 主要就是对req中的cookie值做缓存的
+// 同时也提供把值变为cookie的形式
 export class SessionStore {
   #chunks: Chunks = {}
   #option: CookieOption

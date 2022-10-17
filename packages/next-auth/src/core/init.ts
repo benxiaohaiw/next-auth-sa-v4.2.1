@@ -84,6 +84,11 @@ export async function init({
     providers,
     // Session options
     session: {
+      // ***
+      // session策略
+      // 如果未指定适配器，则强制使用jwt（无状态）
+      // 有适配器的话那么就使用database - 数据库
+      // ***
       // If no adapter specified, force use of JSON Web Tokens (stateless)
       strategy: userOptions.adapter ? "database" : "jwt",
       maxAge,
@@ -104,7 +109,7 @@ export async function init({
     },
     // Event messages
     events: eventsErrorHandler(userOptions.events ?? {}, logger),
-    adapter: adapterErrorHandler(userOptions.adapter, logger),
+    adapter: adapterErrorHandler(userOptions.adapter, logger), // 用户选项中的adapter参数，没有就返回一个空对象
     // Callback functions
     callbacks: { ...defaultCallbacks, ...userOptions.callbacks },
     logger,
