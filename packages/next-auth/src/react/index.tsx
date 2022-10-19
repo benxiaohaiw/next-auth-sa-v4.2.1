@@ -172,9 +172,10 @@ export async function getProviders() {
  *
  * [Documentation](https://next-auth.js.org/getting-started/client#signin)
  */
-export async function signIn<
+export async function signIn< // ***
   P extends RedirectableProviderType | undefined = undefined
 >(
+  // ******
   provider?: LiteralUnion<
     P extends RedirectableProviderType
       ? P | BuiltInProviderType
@@ -195,6 +196,9 @@ export async function signIn<
     return
   }
 
+  // ***
+  // 没有传参数，直接location.href
+  // ******
   if (!provider || !(provider in providers)) {
     window.location.href = `${baseUrl}/signin?${new URLSearchParams({
       callbackUrl,
