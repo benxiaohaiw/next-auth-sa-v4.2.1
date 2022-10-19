@@ -42,7 +42,7 @@ export async function init({
   options: InternalOptions
   cookies: cookie.Cookie[]
 }> {
-  const url = parseUrl(host)
+  const url = parseUrl(host) // dev下是http://localhost:3000
 
   const secret = createSecret({ userOptions, url })
 
@@ -58,18 +58,20 @@ export async function init({
   // except for the options with special handling above
   const options: InternalOptions = {
     debug: false,
-    pages: {},
+    pages: {}, // ******
     theme: {
       colorScheme: "auto",
       logo: "",
       brandColor: "",
       buttonText: "",
     },
+    // ******
+    // 自定义选项覆盖默认值
     // Custom options override defaults
-    ...userOptions,
+    ...userOptions, // ******
     // These computed settings can have values in userOptions but we override them
     // and are request-specific.
-    url,
+    url, // dev下是http://localhost:3000
     action,
     // @ts-expect-errors
     provider,
@@ -103,9 +105,9 @@ export async function init({
     jwt: {
       secret, // Use application secret if no keys specified
       maxAge, // same as session maxAge,
-      encode: jwt.encode,
-      decode: jwt.decode,
-      ...userOptions.jwt,
+      encode: jwt.encode, // ***
+      decode: jwt.decode, // ******
+      ...userOptions.jwt, // *********
     },
     // Event messages
     events: eventsErrorHandler(userOptions.events ?? {}, logger),
@@ -113,7 +115,7 @@ export async function init({
     // Callback functions
     callbacks: { ...defaultCallbacks, ...userOptions.callbacks },
     logger,
-    callbackUrl: url.origin,
+    callbackUrl: url.origin, // dev下是http://localhost:3000
   }
 
   // Init cookies
@@ -147,7 +149,10 @@ export async function init({
     cookieValue: reqCookies?.[options.cookies.callbackUrl.name],
     paramValue: reqCallbackUrl,
   })
-  options.callbackUrl = callbackUrl
+  // ***
+  // 回调url
+  options.callbackUrl = callbackUrl // dev下是http://localhost:3000
+
   if (callbackUrlCookie) {
     cookies.push({
       name: options.cookies.callbackUrl.name,

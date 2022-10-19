@@ -57,7 +57,7 @@ export default async function callbackHandler(params: {
     createSession,
     getSessionAndUser,
     deleteSession,
-  } = adapter
+  } = adapter // 从数据库中获取操作数据库的一系列方法
 
   let session: AdapterSession | JWT | null = null
   let user: AdapterUser | null = null
@@ -198,6 +198,9 @@ export default async function callbackHandler(params: {
       // create a new account for the user, link it to the OAuth acccount and
       // create a new session for them so they are signed in with it.
       const { id: _, ...newUser } = { ...profile, emailVerified: null }
+
+      // ******
+      // 向数据库中创建user
       user = await createUser(newUser)
       await events.createUser?.({ user })
 
@@ -206,11 +209,13 @@ export default async function callbackHandler(params: {
 
       session = useJwtSession
         ? {}
-        : await createSession({
+        // ******
+        : await createSession({ // 向数据库中创建session
             sessionToken: generateSessionToken(),
             userId: user.id,
             expires: fromDate(options.session.maxAge),
           })
+        // *********
 
       return { session, user, isNewUser: true }
     }

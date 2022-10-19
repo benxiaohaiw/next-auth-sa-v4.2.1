@@ -16,7 +16,7 @@ export async function createCallbackUrl({
   paramValue,
   cookieValue,
 }: CreateCallbackUrlParams) {
-  const { url, callbacks } = options
+  const { url, callbacks } = options // dev下是http://localhost:3000
 
   let callbackUrl = url.origin
 
@@ -35,7 +35,7 @@ export async function createCallbackUrl({
   }
 
   return {
-    callbackUrl,
+    callbackUrl, // dev下是http://localhost:3000
     // Save callback URL in a cookie so that it can be used for subsequent requests in signin/signout/callback flow
     callbackUrlCookie: callbackUrl !== cookieValue ? callbackUrl : undefined,
   }

@@ -136,7 +136,7 @@ export async function NextAuthHandler<
     userOptions,
     action,
     providerId,
-    host: req.host,
+    host: req.host, // 请求的主机 - dev下是http://localhost:3000
     callbackUrl: req.body?.callbackUrl ?? req.query?.callbackUrl,
     csrfToken: req.body?.csrfToken,
     cookies: req.cookies,
@@ -156,7 +156,7 @@ export async function NextAuthHandler<
     // 否则这里使用 Preact SSR 渲染一组默认的。
     // signin、signout、verifyRequest、error类型的
     const render = renderPage({ ...options, query: req.query, cookies })
-    const { pages } = options
+    const { pages } = options // 在init中若用户没有定义pages，那么这个pages为空对象{}
     switch (action) {
       case "providers":
         return (await routes.providers(options.providers)) as any
@@ -182,14 +182,15 @@ export async function NextAuthHandler<
           return { redirect: signinUrl, cookies }
         }
 
-        return render.signin() // 采用默认的登录页面渲染
+        // ******
+        return render.signin() // 采用默认的登录页面进行渲染
       case "signout":
         if (pages.signOut) return { redirect: pages.signOut, cookies }
 
         return render.signout()
       case "callback":
         if (options.provider) {
-          const callback = await routes.callback({
+          const callback = await routes.callback({ // ******第三方登录成功后的回调地址就会请求走到这里
             body: req.body,
             query: req.query,
             headers: req.headers,
@@ -242,8 +243,9 @@ export async function NextAuthHandler<
     switch (action) {
       case "signin":
         // Verified CSRF Token required for all sign in routes
-        if (options.csrfTokenVerified && options.provider) {
-          const signin = await routes.signin({
+        if (options.csrfTokenVerified && options.provider) { // ******https://next-auth-example.vercel.app/例子走的是这个逻辑
+          const signin = await routes.signin({ // 会返回一个redirect url，那么之后在next/index.ts中就可以302 location啦 ~
+            // ******
             query: req.query,
             body: req.body,
             options,

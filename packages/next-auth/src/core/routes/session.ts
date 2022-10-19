@@ -44,6 +44,12 @@ export default async function session(
 
   if (!sessionToken) return response // 没有直接返回response就可啦
 
+  // ***
+  // session两种策略方式
+  // 一种强制使用jwt，然后随cookie带向客户端
+  // 一种是数据库存储session，获取的时候需要从数据库中读取的
+  // ***
+
   // 未指定adapt的话默认的session的策略是jwt的方式
   if (sessionStrategy === "jwt") {
     try {

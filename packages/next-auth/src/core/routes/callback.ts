@@ -109,15 +109,17 @@ export default async function callback(params: {
           }
         }
 
+        // ******
+        // 如果session的策略是数据库的话，那么在该函数中主要的逻辑就是向数据库中存取session、创建用户
         // Sign user in
-        const { user, session, isNewUser } = await callbackHandler({
+        const { user, session, isNewUser } = await callbackHandler({ // *******
           sessionToken: sessionStore.value,
           profile,
           account,
           options,
         })
 
-        if (useJwtSession) {
+        if (useJwtSession) { // 默认是使用jwt
           const defaultToken = {
             name: user.name,
             email: user.email,
@@ -132,6 +134,7 @@ export default async function callback(params: {
             isNewUser,
           })
 
+          // jwt编码
           // Encode token
           const newToken = await jwt.encode({ ...jwt, token })
 
@@ -139,6 +142,7 @@ export default async function callback(params: {
           const cookieExpires = new Date()
           cookieExpires.setTime(cookieExpires.getTime() + sessionMaxAge * 1000)
 
+          // 把jwt整合成cookie形式
           const sessionCookies = sessionStore.chunk(newToken, {
             expires: cookieExpires,
           })
@@ -170,6 +174,9 @@ export default async function callback(params: {
           }
         }
 
+        // ******
+        // 响应302 location值为callbackUrl 且 附带这些cookies
+        // ******
         // Callback URL is already verified at this point, so safe to use if specified
         return { redirect: callbackUrl, cookies }
       } catch (error) {

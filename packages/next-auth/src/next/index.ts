@@ -49,14 +49,17 @@ async function NextAuthNextHandler(
   // 设置响应的headers
   handler.headers?.forEach((h) => res.setHeader(h.key, h.value))
 
+  // ******
   // 是否要重定向
-  if (handler.redirect) {
+  if (handler.redirect) { // ******
     // If the request expects a return URL, send it as JSON
     // instead of doing an actual redirect.
     if (req.body?.json !== "true") {
       // Could chain. .end() when lowest target is Node 14
       // https://github.com/nodejs/node/issues/33148
-      res.status(302).setHeader("Location", handler.redirect)
+      res.status(302).setHeader("Location", handler.redirect) // ******
+      // ******
+      // *** 302 重定向 redirect
       return res.end()
     }
     return res.json({ url: handler.redirect })

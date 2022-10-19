@@ -35,6 +35,9 @@ export default function SigninPage(props: SignInServerPageParams) {
     email,
     error: errorType,
   } = props
+  // ***
+  // 根据用户配置的providers来去决定最终渲染的页面
+  // ***
   // We only want to render providers
   const providersToRender = providers.filter((provider) => {
     if (provider.type === "oauth" || provider.type === "email") {
@@ -95,9 +98,38 @@ export default function SigninPage(props: SignInServerPageParams) {
         )}
         {providersToRender.map((provider, i: number) => (
           <div key={provider.id} className="provider">
-            {provider.type === "oauth" && (
+            {provider.type === "oauth" && ( // github provider的signinUrl是https://next-auth-example.vercel.app/api/auth/signin/github post请求
               <form action={provider.signinUrl} method="POST">
                 <input type="hidden" name="csrfToken" value={csrfToken} />
+                {/** ****** */}
+                {/** callbackUrl在dev下是http://localhost:3000，生产下是https://next-auth-example.vercel.app/为例子
+                 * 
+                 * 点击github登录就会发送https://next-auth-example.vercel.app/api/auth/signin/github post请求
+                 * 
+                 * 之后该请求响应为302 响应头中附带location头地址为
+                 * https://github.com/login/oauth/authorize?client_id=bce1a4f72ad55855cb9a&scope=read:user user:email&response_type=code&redirect_uri=https://next-auth-example.vercel.app/api/auth/callback/github&state=UJYCJQlAo1vdYPQJURxWO2TB16UcLB3hmmDWUmV5n80
+                 * 从url分析得知登录成功后重定向的url是https://next-auth-example.vercel.app/api/auth/callback/github
+                 * 
+                 * 之后浏览器就跳转到这个地址 - 让用户同意授权
+                 * 
+                 * 授权之后跳转到https://next-auth-example.vercel.app/api/auth/callback/github
+                 * 
+                 * 此时便来到了core/routes/callback.ts中来 - 经过一系列的处理 - jwt encode - 转为cookie形式 - redirect为callbackUrl
+                 * 数据库策略的话主要逻辑在core/lib/callback-handler.ts中进行向数据库中创建用户以及像数据库中创建session等操作
+                 * 
+                 * 在next/index.ts中响应302 location为callbackUrl 附带cookie
+                 * 
+                 * 浏览器再做跳转到到callbackUrl
+                 * 
+                 * 如果是客户端做session的逻辑
+                 * 那么客户端会发出/api/auth/session的请求 - 注意：会附带带有jwt的cookie -> 来到routes/session.ts中
+                 * 默认是jwt策略，之后就会对jwt进行decode等一些列的操作
+                 * 数据库策略的话就会通过cookie向数据库中查询等操作
+                 * 
+                 * 具体例子可参考https://github.com/benxiaohaiw/next-auth-example
+                 * https://next-auth-example.vercel.app/
+                 * 
+                 */}
                 {callbackUrl && (
                   <input type="hidden" name="callbackUrl" value={callbackUrl} />
                 )}

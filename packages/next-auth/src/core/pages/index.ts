@@ -39,12 +39,13 @@ export default function renderPage(params: RenderPageParams) {
   }
 
   return {
+    // 默认登录渲染的页面
     signin(props?: any) {
       return send({
         html: SigninPage({
           csrfToken: params.csrfToken,
           providers: params.providers,
-          callbackUrl: params.callbackUrl,
+          callbackUrl: params.callbackUrl, // 第三方登录成功后的回调url - dev下是http://localhost:3000
           theme,
           ...query,
           ...props,
